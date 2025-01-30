@@ -6,13 +6,12 @@ output:
   pdf_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-```
+
 
 
 ## Loading and preprocessing the data
-```{r}
+
+``` r
 library(dplyr)
 library(lubridate)
 df <- read.table(
@@ -30,40 +29,37 @@ df <- read.table(
 
 ## What is mean total number of steps taken per day?
 ### Calculate the total number of steps taken per day
-```{r}
+
+``` r
 total_per_day <- df %>% 
   group_by(activity_date) %>% 
   summarise(total = sum(steps))
 ```
 
 ### Make a histogram of the total number of steps taken each day
-```{r eval=FALSE}
+
+``` r
 hist(total_per_day$total, breaks=20, 
      main="Total number of steps by date", xlab="Steps")
 ```
 
 ### Calculate and report the mean and median of the total number of steps taken per day
-```{r echo=FALSE}
-total_per_day_mean <- mean(total_per_day$total, na.rm=TRUE)
-total_per_day_median <- median(total_per_day$total, na.rm=TRUE)
-```
-The mean value **`r sprintf("%.1f", total_per_day_mean)`** is almost the same as the median value **`r total_per_day_median`**. Thus the lines for <font color="blue">mean</font> and <font color="green">median</font> will overlay on each other at the histogram. 
 
-```{r eval=FALSE}
+The mean value **10766.2** is almost the same as the median value **10765**. Thus the lines for <font color="blue">mean</font> and <font color="green">median</font> will overlay on each other at the histogram. 
+
+
+``` r
 abline(v=mean(total_per_day_median$total, na.rm=TRUE), col="blue", lwd=2, lty=3)
 abline(v=median(total_per_day_median$total, na.rm=TRUE), col="green", lwd=2, lty=4)
 ```
 
-```{r echo=FALSE}
-hist(total_per_day$total, breaks=20, main="Total number of steps by date", xlab="Steps")
-abline(v=total_per_day_mean, col="blue", lwd=2, lty=3)
-abline(v=total_per_day_median, col="green", lwd=2, lty=4)
-```
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png)
 
 
 ## What is the average daily activity pattern?
 ### Make a time series plot (i.e. <font color="red"> type = "l" </font>) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
-```{r}
+
+``` r
 average_per_interval <- df %>% 
   group_by(interval) %>% 
   summarise(average = mean(steps, na.rm = TRUE))
@@ -73,24 +69,36 @@ average_per_interval %>% plot(interval ~ average, type="l",
 axis(1, labels=unique(df$interval_str), at=unique(df$interval))
 ```
 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png)
+
 ### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-```{r}
+
+``` r
 average_per_interval %>% slice_max(average)
+```
+
+```
+## # A tibble: 1 × 2
+##   interval average
+##   <chr>      <dbl>
+## 1 0835        206.
 ```
 
 ## Imputing missing values
 ### Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with <font color="red">**NAs**</font>)
-```{r}
+
+``` r
 missing_rows <- sum(is.na(df$steps))
 missing_rows_p <- mean(is.na(df$steps)) * 100
 ```
-The original data set has **`r missing_rows`** rows or **`r sprintf("%.1f", missing_rows_p)`%**. 
+The original data set has **2304** rows or **13.1%**. 
 
 ### Devise a strategy for filling in all of the missing values in the dataset
 We'll impute the missing steps values with the average steps value for the same time interval. The values are already calculated and stored in the `average_per_interval`.
 
 ### Create a new dataset that is equal to the original dataset but with the missing data filled in.
-```{r}
+
+``` r
 imputed <- df %>% 
   left_join(average_per_interval, by="interval") %>%
   mutate(steps = coalesce(steps, average)) %>%
@@ -98,21 +106,36 @@ imputed <- df %>%
 ```
 
 ### Make a histogram of the total number of steps taken each day 
-```{r}
+
+``` r
 imputed_total_per_day <- imputed %>% 
   group_by(activity_date) %>% 
   summarise(total = sum(steps))
 ```
-```{r}
+
+``` r
 hist(imputed_total_per_day$total, breaks=20, 
      main="Total number of steps by date (imputed)", xlab="Steps")
 ```
 
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png)
+
 ### Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment?
-```{r}
+
+``` r
 summary(imputed_total_per_day)
 ```
-For the reference see the first estimates mean of **`r total_per_day_mean`** and median of **`r total_per_day_median`**. 
+
+```
+##  activity_date            total      
+##  Min.   :2012-10-01   Min.   :   41  
+##  1st Qu.:2012-10-16   1st Qu.: 9819  
+##  Median :2012-10-31   Median :10766  
+##  Mean   :2012-10-31   Mean   :10766  
+##  3rd Qu.:2012-11-15   3rd Qu.:12811  
+##  Max.   :2012-11-30   Max.   :21194
+```
+For the reference see the first estimates mean of **1.0766189 &times; 10<sup>4</sup>** and median of **10765**. 
 
 ### What is the impact of imputing missing data on the estimates of the total daily number of steps?
 A bit less variance, we smoothed the values
@@ -120,14 +143,16 @@ A bit less variance, we smoothed the values
 
 ## Are there differences in activity patterns between weekdays and weekends?
 ### Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
-```{r}
+
+``` r
 # wday(week_start = 1) -> 1 is Monday, ..., 7 is Sunday
 imputed <- imputed %>% mutate(week_day = ifelse(wday(date, week_start = 1) > 5, 
                                                 "weekend", "weekday"), 
                               week_day = factor(week_day))
 ```
 ### Make a panel plot containing a time series plot (i.e. <font color="red"> type = "l"</font>) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
-```{r out.width="100%", fig.cap=""}
+
+``` r
 library(ggplot2)
 intervals <- unique(df$interval)
 sample_intervals <- intervals[seq(1,length(intervals), 18)]
@@ -139,3 +164,5 @@ imputed %>%
   labs(x = "Time interval", y = "Steps") + 
   scale_x_discrete(breaks = sample_intervals)
 ```
+
+<img src="figure/unnamed-chunk-15-1.png" width="100%" />
